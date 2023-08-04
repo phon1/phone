@@ -1,9 +1,9 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 import psycopg2
 
 # Thông tin kết nối PostgreSQL
 db_config = {
-    "dbname": "phone",
+    "dbname": "phonesdb",
     "user": "phong",
     "password": "123",
     "host": "192.168.1.11",
@@ -48,6 +48,7 @@ def login():
 
     return render_template("index.html")
 
+
 @app.route("/next", methods=["GET", "POST"])
 def next_page():
     phone_number = session.get("phone_number")
@@ -62,21 +63,25 @@ def next_page():
         existing_data = get_data_from_db()
         for row in existing_data:
             if row[2] == data:
-                return render_template("next_page.html", phone_number=phone_number, error="Data đã tồn tại.")
+                error = "Data đã tồn tại."
+                return render_template("next_page.html", phone_number=phone_number, error=error)
 
         # Thực hiện lưu data vào cơ sở dữ liệu
         try:
             conn = psycopg2.connect(**db_config)
             cursor = conn.cursor()
-            cursor.execute(f"INSERT INTO phone (phone_number, data) VALUES ('{phone_number}', '{data}');")
+            insert_query = "INSERT INTO phone (phone_number, data) VALUES (%s, %s);"
+            cursor.execute(insert_query, (phone_number, data))
             conn.commit()
             cursor.close()
             conn.close()
             print("Lưu dữ liệu thành công!")
-            return render_template("next_page.html", phone_number=phone_number, success="Đã lưu thành công.")
+            success = "Đã lưu thành công."
+            return render_template("next_page.html", phone_number=phone_number, success=success)
         except Exception as e:
             print(f"Lỗi khi thực hiện truy vấn INSERT: {e}")
-            return render_template("next_page.html", phone_number=phone_number, error="Lưu dữ liệu không thành công.")
+            error = "Lưu dữ liệu không thành công."
+            return render_template("next_page.html", phone_number=phone_number, error=error)
 
     return render_template("next_page.html", phone_number=phone_number)
 
@@ -84,33 +89,116 @@ def next_page():
 def save_data():
     if request.method == "POST":
         phone_number = session.get("phone_number")
-        data = request.form.get("data")
+        data = request.json.get("data")
 
         if not phone_number:
-            return redirect(url_for("login"))
+            return jsonify({"success": False, "message": "Invalid phone number."}), 400
 
-        # Kiểm tra nếu data đã tồn tại trong cơ sở dữ liệu
+        # Check if the data already exists in the database
         existing_data = get_data_from_db()
         if existing_data is None:
             existing_data = []
 
         for row in existing_data:
-            if row[2] == data:
-                return render_template("next_page.html", phone_number=phone_number, data=data, error="Data đã tồn tại.")
+            if row[1] == phone_number and row[2] == data:
+                return jsonify({"success": False, "message": "Data already exists for this phone number."}), 409
 
-        # Thực hiện lưu data vào cơ sở dữ liệu
+        # Save data to the database
         try:
             conn = psycopg2.connect(**db_config)
             cursor = conn.cursor()
-            cursor.execute(f"INSERT INTO phone (phone_number, data) VALUES ('{phone_number}', '{data}');")
+            cursor.execute("INSERT INTO phone (phone_number, data) VALUES (%s, %s);", (phone_number, data))
             conn.commit()
             cursor.close()
             conn.close()
-            print("Lưu dữ liệu thành công!")
-            return render_template("next_page.html", phone_number=phone_number, success="Đã lưu thành công.")
+            print("Data saved successfully!")
+            return jsonify({"success": True, "message": "Data saved successfully."}), 200
         except Exception as e:
-            print(f"Lỗi khi thực hiện truy vấn INSERT: {e}")
-            return render_template("next_page.html", phone_number=phone_number, data=data, error="Lưu dữ liệu không thành công.")
+            print(f"Error executing INSERT query: {e}")
+            return jsonify({"success": False, "message": "Failed to save data."}), 500
+
+@app.route("/check_data", methods=["POST"])
+def check_data():
+    data = request.json.get("data")
+
+    # Kiểm tra nếu data đã tồn tại trong cơ sở dữ liệu
+    existing_data = get_data_from_db()
+    for row in existing_data:
+        if row[2] == data:
+            return {"exists": True}
+
+    return {"exists": False}
+
+@app.route("/watch_log", methods=["GET"])
+def watch_log():
+    try:
+        conn = psycopg2.connect(**db_config)
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM phone;")
+        log_data = cursor.fetchall()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print(f"Lỗi khi thực hiện truy vấn SELECT: {e}")
+        log_data = []  # Nếu có lỗi, trả về một danh sách rỗng
+
+    return render_template("watch_log.html", log_data=log_data)
+
+@app.route("/update_data", methods=["POST"])
+def update_data():
+    if request.method == "POST":
+        data_id = request.form.get("data_id")
+        new_data = request.form.get("new_data")
+
+        try:
+            conn = psycopg2.connect(**db_config)
+            cursor = conn.cursor()
+            update_query = "UPDATE phone SET data = %s WHERE id = %s;"
+            cursor.execute(update_query, (new_data, data_id))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return "Success"  # Trả về một thông báo thành công
+        except Exception as e:
+            print(f"Lỗi khi thực hiện truy vấn UPDATE: {e}")
+            return "Error"  # Trả về một thông báo lỗi
+
+@app.route("/delete_data", methods=["POST"])
+def delete_data():
+    if request.method == "POST":
+        data_id = request.json.get("data_id")
+
+        try:
+            conn = psycopg2.connect(**db_config)
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM phone WHERE id=%s;", (data_id,))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            print("Xóa dữ liệu thành công!")
+            return "Success"
+        except Exception as e:
+            print(f"Lỗi khi thực hiện truy vấn DELETE: {e}")
+            return "Failed"
+
+@app.route("/edit_data", methods=["POST"])
+def edit_data():
+    if request.method == "POST":
+        data_id = request.json.get("data_id")
+        new_data = request.json.get("new_data")
+
+        try:
+            conn = psycopg2.connect(**db_config)
+            cursor = conn.cursor()
+            update_query = "UPDATE phone SET data = %s WHERE id = %s;"
+            cursor.execute(update_query, (new_data, data_id))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return "Success"  # Trả về một thông báo thành công
+        except Exception as e:
+            print(f"Lỗi khi thực hiện truy vấn UPDATE: {e}")
+            return "Error"  # Trả về một thông báo lỗi
 
 
 if __name__ == "__main__":

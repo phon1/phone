@@ -2,7 +2,7 @@
 <html>
 <head>
     <title>Watch Log</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style_watch_log.css') }}">  <!-- Thêm dòng này để liên kết đến file CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style_watch_log.css') }}">
 </head>
 <body>
     <h1>Watch Log</h1>
@@ -11,14 +11,108 @@
             <th>ID</th>
             <th>PHONE_NUMBER</th>
             <th>DATA</th>
+            <th>OPTIONS</th>
         </tr>
         {% for row in log_data %}
         <tr>
             <td>{{ row[0] }}</td>
             <td>{{ row[1] }}</td>
-            <td contenteditable="true">{{ row[2] }}</td>
+            <td contenteditable="true" data-id="{{ row[0] }}" onblur="updateData(this)">{{ row[2] }}</td>
+            <td>
+                <button data-id="{{ row[0] }}" onclick="editData('{{ row[0] }}')">Edit</button>
+                <button data-id="{{ row[0] }}" onclick="deleteData(this)">Delete</button>
+            </td>
         </tr>
         {% endfor %}
     </table>
+
+    <div id="myModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <p id="modalMessage"></p>
+            <input type="text" id="editDataInput">
+            <button onclick="saveEditData()">Save</button>
+        </div>
+    </div>
+
+    <script>
+        // Thêm mã JavaScript để thực hiện thêm, sửa và xóa dữ liệu
+        function updateData(element) {
+            const dataId = element.dataset.id;
+            const newData = element.innerText;
+
+            fetch("/update_data", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ data_id: dataId, new_data: newData }),
+            })
+            .then((response) => response.text())
+            .then((result) => {
+                if (result === "Success") {
+                    showModalMessage("Update successful", true);
+                } else {
+                    showModalMessage("Update failed", false);
+                }
+            });
+        }
+
+        function editData(dataId) {
+            const modal = document.getElementById("myModal");
+            const modalInput = document.getElementById("editDataInput");
+
+            // Lấy dữ liệu hiện tại của cell cần sửa
+            const dataCell = document.querySelector(`td[data-id="${dataId}"]`);
+            const currentData = dataCell.innerText;
+
+            // Hiển thị modal và điền dữ liệu cần sửa vào input
+            modal.style.display = "block";
+            modalInput.value = currentData;
+            modalInput.dataset.id = dataId;
+        }
+
+        function saveEditData() {
+            const modal = document.getElementById("myModal");
+            const modalMessage = document.getElementById("modalMessage");
+            const modalInput = document.getElementById("editDataInput");
+            const dataId = modalInput.dataset.id;
+            const newData = modalInput.value;
+
+            fetch("/update_data", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ data_id: dataId, new_data: newData }),
+            })
+            .then((response) => response.text())
+            .then((result) => {
+                if (result === "Success") {
+                    showModalMessage("Update successful", true);
+                    // Cập nhật lại cell trên trang với dữ liệu đã sửa
+                    const dataCell = document.querySelector(`td[data-id="${dataId}"]`);
+                    dataCell.innerText = newData;
+                } else {
+                    showModalMessage("Update failed", false);
+                }
+            });
+
+            closeModal();
+        }
+
+        function deleteData(button) {
+            // Tương tự như code cũ
+        }
+
+        function showModalMessage(message, isSuccess) {
+            // Tương tự như code cũ
+        }
+
+        function closeModal() {
+            const modal = document.getElementById("myModal");
+            modal.style.display = "none";
+        }
+    </script>
 </body>
 </html>
