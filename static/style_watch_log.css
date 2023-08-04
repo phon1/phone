@@ -92,6 +92,11 @@ button[data-id][onclick*="deleteData"]:hover {
 }
 
 button i {
-    font-size: 16px; /* Điều chỉnh kích thước biểu tượng tại đây */
+    font-size: 4px; /* Điều chỉnh kích thước biểu tượng tại đây */
+    vertical-align: middle;
+}
+
+.material-icons {
+    font-size: 5px; /* Điều chỉnh kích thước biểu tượng tại đây */
     vertical-align: middle;
 }

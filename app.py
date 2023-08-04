@@ -176,7 +176,7 @@ def update_data():
 @app.route("/delete_data", methods=["POST"])
 def delete_data():
     if request.method == "POST":
-        data_id = request.json.get("data_id")
+        data_id = request.form.get("data_id")
 
         try:
             conn = psycopg2.connect(**db_config)

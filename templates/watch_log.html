@@ -4,10 +4,7 @@
 <head>
     <title>Watch Log</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style_watch_log.css') }}">
-    <link
-        href="https://fonts.googleapis.com/icon?family=Material+Icons"
-        rel="stylesheet"
-    >
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 
 <body>
@@ -23,7 +20,8 @@
         <tr>
             <td>{{ loop.index }}</td> <!-- Thay đổi đoạn này -->
             <td>{{ row[1] }}</td>
-            <td contenteditable="true" data-id="{{ row[0] }}" onblur="updateData(this)">{{ row[2] }}</td> <!-- Thay đổi đoạn này -->
+            <td contenteditable="true" data-id="{{ row[0] }}" onblur="updateData(this)">{{ row[2] }}</td>
+            <!-- Thay đổi đoạn này -->
             <td>
                 <button data-id="{{ row[0] }}" onclick="editData('{{ row[0] }}')">
                     <i class="material-icons">build</i> <!-- Biểu tượng cờ lê -->
@@ -119,19 +117,19 @@
         }
 
         function deleteData(button) {
-            const dataId = button.dataset.id;
+            const dataId = button.getAttribute("data-id"); // Lấy giá trị thuộc tính data-id của nút (button)
 
             fetch("/delete_data", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/x-www-form-urlencoded",
                 },
-                body: `data_id=${dataId}`,
+                body: `data_id=${dataId}`, // Gửi data_id trong phần thân của yêu cầu (request body)
             })
                 .then((response) => response.text())
                 .then((result) => {
                     if (result === "Success") {
-                        // Xóa hàng khỏi bảng nếu xóa dữ liệu thành công
+                        // Xóa hàng trong bảng nếu xóa dữ liệu thành công
                         const tableRow = button.parentNode.parentNode;
                         tableRow.remove();
                     } else {
