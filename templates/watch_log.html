@@ -1,9 +1,15 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Watch Log</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style_watch_log.css') }}">
+    <link
+        href="https://fonts.googleapis.com/icon?family=Material+Icons"
+        rel="stylesheet"
+    >
 </head>
+
 <body>
     <h1>Watch Log</h1>
     <table>
@@ -19,8 +25,12 @@
             <td>{{ row[1] }}</td>
             <td contenteditable="true" data-id="{{ row[0] }}" onblur="updateData(this)">{{ row[2] }}</td>
             <td>
-                <button data-id="{{ row[0] }}" onclick="editData('{{ row[0] }}')">Edit</button>
-                <button data-id="{{ row[0] }}" onclick="deleteData(this)">Delete</button>
+                <button data-id="{{ row[0] }}" onclick="editData('{{ row[0] }}')">
+                    <i class="material-icons">build</i> <!-- Biểu tượng cờ lê -->
+                </button>
+                <button data-id="{{ row[0] }}" onclick="deleteData(this)">
+                    <i class="material-icons">delete</i> <!-- Biểu tượng thùng rác -->
+                </button>
             </td>
         </tr>
         {% endfor %}
@@ -36,7 +46,6 @@
     </div>
 
     <script>
-        // Thêm mã JavaScript để thực hiện thêm, sửa và xóa dữ liệu
         function updateData(element) {
             const dataId = element.dataset.id;
             const newData = element.innerText;
@@ -44,18 +53,22 @@
             fetch("/update_data", {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json",
+                    "Content-Type": "application/x-www-form-urlencoded",
                 },
-                body: JSON.stringify({ data_id: dataId, new_data: newData }),
+                body: `data_id=${dataId}&new_data=${newData}`,
             })
-            .then((response) => response.text())
-            .then((result) => {
-                if (result === "Success") {
-                    showModalMessage("Update successful", true);
-                } else {
+                .then((response) => response.json())
+                .then((result) => {
+                    if (result.success) {
+                        showModalMessage("Update successful", true);
+                    } else {
+                        showModalMessage("Update failed", false);
+                    }
+                })
+                .catch((error) => {
+                    console.error("Error updating data:", error);
                     showModalMessage("Update failed", false);
-                }
-            });
+                });
         }
 
         function editData(dataId) {
@@ -82,31 +95,59 @@
             fetch("/update_data", {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json",
+                    "Content-Type": "application/x-www-form-urlencoded",
                 },
-                body: JSON.stringify({ data_id: dataId, new_data: newData }),
+                body: `data_id=${dataId}&new_data=${newData}`,
             })
-            .then((response) => response.text())
-            .then((result) => {
-                if (result === "Success") {
-                    showModalMessage("Update successful", true);
-                    // Cập nhật lại cell trên trang với dữ liệu đã sửa
-                    const dataCell = document.querySelector(`td[data-id="${dataId}"]`);
-                    dataCell.innerText = newData;
-                } else {
+                .then((response) => response.json())
+                .then((result) => {
+                    if (result.success) {
+                        showModalMessage("Update successful", true);
+                        // Cập nhật lại cell trên trang với dữ liệu đã sửa
+                        const dataCell = document.querySelector(`td[data-id="${dataId}"]`);
+                        dataCell.innerText = newData;
+                    } else {
+                        showModalMessage("Update failed", false);
+                    }
+                })
+                .catch((error) => {
+                    console.error("Error updating data:", error);
                     showModalMessage("Update failed", false);
-                }
-            });
+                });
 
             closeModal();
         }
 
         function deleteData(button) {
-            // Tương tự như code cũ
+            const dataId = button.dataset.id;
+
+            fetch("/delete_data", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
+                body: `data_id=${dataId}`,
+            })
+                .then((response) => response.text())
+                .then((result) => {
+                    if (result === "Success") {
+                        // Xóa hàng khỏi bảng nếu xóa dữ liệu thành công
+                        const tableRow = button.parentNode.parentNode;
+                        tableRow.remove();
+                    } else {
+                        showModalMessage("Delete failed", false);
+                    }
+                })
+                .catch((error) => {
+                    console.error("Error deleting data:", error);
+                    showModalMessage("Delete failed", false);
+                });
         }
 
         function showModalMessage(message, isSuccess) {
-            // Tương tự như code cũ
+            const modalMessage = document.getElementById("modalMessage");
+            modalMessage.textContent = message;
+            modalMessage.style.color = isSuccess ? "green" : "red";
         }
 
         function closeModal() {
@@ -115,4 +156,5 @@
         }
     </script>
 </body>
+
 </html>

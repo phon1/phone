@@ -23,7 +23,6 @@ def get_data_from_db():
         print(f"Lỗi khi thực hiện truy vấn SELECT: {e}")
         return []
 
-
 app = Flask(__name__)
 app.secret_key = "your_secret_key"  # Hãy thay đổi "your_secret_key" thành một giá trị bí mật thực tế
 
@@ -47,7 +46,6 @@ def login():
         return redirect(url_for("next_page"))
 
     return render_template("index.html")
-
 
 @app.route("/next", methods=["GET", "POST"])
 def next_page():
@@ -131,10 +129,16 @@ def check_data():
 
 @app.route("/watch_log", methods=["GET"])
 def watch_log():
+    phone_number = session.get("phone_number")
+
+    if not phone_number:
+        return redirect(url_for("login"))
+
     try:
         conn = psycopg2.connect(**db_config)
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM phone;")
+        select_query = "SELECT * FROM phone WHERE phone_number=%s;"
+        cursor.execute(select_query, (phone_number,))
         log_data = cursor.fetchall()
         cursor.close()
         conn.close()
@@ -153,15 +157,21 @@ def update_data():
         try:
             conn = psycopg2.connect(**db_config)
             cursor = conn.cursor()
-            update_query = "UPDATE phone SET data = %s WHERE id = %s;"
+            update_query = "UPDATE phone SET data = %s WHERE id = %s RETURNING *;"
             cursor.execute(update_query, (new_data, data_id))
+            updated_data = cursor.fetchone()
             conn.commit()
             cursor.close()
             conn.close()
-            return "Success"  # Trả về một thông báo thành công
+
+            if updated_data:
+                return jsonify({"success": True, "message": "Data updated successfully.", "data": updated_data}), 200
+            else:
+                return jsonify({"success": False, "message": "Data not found."}), 404
+
         except Exception as e:
             print(f"Lỗi khi thực hiện truy vấn UPDATE: {e}")
-            return "Error"  # Trả về một thông báo lỗi
+            return jsonify({"success": False, "message": "Failed to update data."}), 500
 
 @app.route("/delete_data", methods=["POST"])
 def delete_data():
@@ -181,26 +191,5 @@ def delete_data():
             print(f"Lỗi khi thực hiện truy vấn DELETE: {e}")
             return "Failed"
 
-@app.route("/edit_data", methods=["POST"])
-def edit_data():
-    if request.method == "POST":
-        data_id = request.json.get("data_id")
-        new_data = request.json.get("new_data")
-
-        try:
-            conn = psycopg2.connect(**db_config)
-            cursor = conn.cursor()
-            update_query = "UPDATE phone SET data = %s WHERE id = %s;"
-            cursor.execute(update_query, (new_data, data_id))
-            conn.commit()
-            cursor.close()
-            conn.close()
-            return "Success"  # Trả về một thông báo thành công
-        except Exception as e:
-            print(f"Lỗi khi thực hiện truy vấn UPDATE: {e}")
-            return "Error"  # Trả về một thông báo lỗi
-
-
 if __name__ == "__main__":
     app.run(debug=True)
-

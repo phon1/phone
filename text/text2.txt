@@ -1,9 +1,0 @@
-    <div class="random-data">
-        <label for="data">Data:</label>
-        <input type="text" id="data" name="data" value="{{ data }}" >
-        <button onclick="saveData()">Save</button>
-    </div>
-next_page.html
-gọi method POST
-
-ở app.py viết thêm 1 method POST dể khi bấm save data thì nó sẽ gọi và lưu vào hệ thống

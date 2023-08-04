@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Next Page</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style_next_page.css') }}">
     <!-- Thêm dòng này để liên kết đến file CSS -->
 </head>
+
 <body>
     <header>
         <div class="phone-number">
@@ -12,7 +14,7 @@
         </div>
         <button class="logout-button" onclick="logout()">Logout</button>
     </header>
-    <h1>Welcome to the Next Page!</h1>
+    <h1>Welcome to the Next Page!</h1> </br>
     <div class="random-data">
         <label for="data">Data:</label>
         <input type="text" id="data" name="data" value="{{ data }}">
@@ -31,12 +33,12 @@
         function openPopup() {
             window.open("/watch_log", "_blank", "width=800,height=600");
         }
-    
+
         // logout
         function logout() {
             window.location.href = "/";
         }
-    
+
         // Function to show the pop-up with a custom message
         function showPopup(message) {
             const modal = document.getElementById("myModal");
@@ -44,18 +46,19 @@
             messageDiv.innerHTML = message;
             modal.style.display = "block";
         }
-    
+
         // Function to close the pop-up
         function closeModal() {
             const modal = document.getElementById("myModal");
             modal.style.display = "none";
         }
-    
+
         // Function to save data using AJAX
         function saveData() {
-            const data = document.getElementById("data").value;
+            const dataInput = document.getElementById("data");
+            const data = dataInput.value;
             const csrfToken = "{{ session['csrf_token'] }}"; // Replace with the actual CSRF token from Flask
-    
+
             // Send the data to the server using AJAX
             fetch("/save_data", {
                 method: "POST",
@@ -65,25 +68,29 @@
                 },
                 body: JSON.stringify({ data: data }),
             })
-            .then((response) => response.json())
-            .then((result) => {
-                // Show the appropriate message in the pop-up
-                if (result.success) {
-                    showPopup(`<img alt="V" style="vertical-align: middle;"> Lưu dữ liệu thành công.`);
-                } else {
-                    showPopup(`<img alt="X" style="vertical-align: middle;"> Lưu dữ liệu thất bại, dữ liệu đã tồn tại.`);
-                }
-                // Close the pop-up after a short delay (e.g., 3 seconds)
-                setTimeout(closeModal, 3000);
-            })
-            .catch((error) => {
-                // Handle any errors and show a generic error message in the pop-up
-                console.error("Error saving data:", error);
-                showPopup(`<img alt="X" style="vertical-align: middle;"> Lưu dữ liệu không thành công.`);
-                // Close the pop-up after a short delay (e.g., 3 seconds)
-                setTimeout(closeModal, 3000);
-            });
+                .then((response) => response.json())
+                .then((result) => {
+                    // Show the appropriate message in the pop-up
+                    if (result.success) {
+                        showPopup(`<span> Lưu dữ liệu thành công.</span>`);
+                        // Clear the input field after successful save
+                        dataInput.value = "";
+                    } else {
+                        showPopup(`<span> Lưu dữ liệu thất bại, dữ liệu đã tồn tại.</span>`);
+                    }
+                    // Close the pop-up after a short delay (e.g., 3 seconds)
+                    setTimeout(closeModal, 3000);
+                })
+                .catch((error) => {
+                    // Handle any errors and show a generic error message in the pop-up
+                    console.error("Error saving data:", error);
+                    showPopup(`<img alt="X" style="vertical-align: middle;"> Lưu dữ liệu không thành công.`);
+                    // Close the pop-up after a short delay (e.g., 3 seconds)
+                    setTimeout(closeModal, 3000);
+                });
         }
+
     </script>
 </body>
+
 </html>
