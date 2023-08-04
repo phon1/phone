@@ -1,0 +1,22 @@
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background-color: #f2f2f2;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: blue;
+    color: white;
+    padding: 10px;
+}
+
+.logout-button {
+    cursor: pointer;
+}
+
+.phone-number {
+    margin-top: 20px;
+}
